@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>your life</title>
+<style>
+  :root {
+    --bg: #fbfbf9;
+    --ink: #15161a;
+    --dim: #9a9a93;
+    --line: #e2e2dc;
+    --past: #17181c;     /* spent — filled in, used up */
+    --free: #ccd9bf;     /* remaining — open, still yours */
+    --free-ink: #1f9d57; /* legible green for the headline number */
+    --cell: 9px;
+    --gap: 2px;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font: 400 16px/1.5 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    padding: 7vh 24px 18vh;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; }
+
+  /* the control sentence */
+  .sentence {
+    font-size: clamp(20px, 3.4vw, 30px);
+    font-weight: 500;
+    letter-spacing: -0.02em;
+    line-height: 1.45;
+    margin: 0 0 6px;
+  }
+  .sentence .pick {
+    appearance: none; -webkit-appearance: none;
+    font: inherit; font-weight: 800; color: var(--ink);
+    background: transparent; border: 0; border-bottom: 2px solid var(--ink);
+    padding: 0 2px 1px; margin: 0 1px; cursor: pointer; border-radius: 0;
+  }
+  .sentence input[type=date].pick { width: 9.4em; }
+  .sentence input[type=number].pick { width: 2.5em; text-align: center; -moz-appearance: textfield; }
+  .sentence input[type=number].pick::-webkit-outer-spin-button,
+  .sentence input[type=number].pick::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+  .sentence .retire { color: var(--dim); font-weight: 400; }
+  .sentence .retire.off { display: none; }
+  .sentence select.pick { padding-right: 14px; }
+  .selwrap { position: relative; display: inline-block; }
+  .selwrap::after { content: "▾"; position: absolute; right: 1px; bottom: 2px; font-size: .6em; pointer-events: none; color: var(--ink); }
+
+  /* the punch line */
+  .punch { font-size: clamp(28px, 6vw, 52px); font-weight: 800; letter-spacing: -0.04em; line-height: 1.02; margin: 26px 0 4px; }
+  .punch b { color: var(--free-ink); font-weight: 800; }
+  .sub { color: var(--dim); font-size: 15px; margin: 0 0 2px; }
+  .quip { font-style: italic; color: var(--ink); opacity: .55; font-size: 14px; margin: 0; }
+
+  /* toggle chips */
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 26px 0 30px; }
+  .chip {
+    position: relative;
+    display: inline-flex; align-items: center; gap: 7px;
+    font: inherit; font-size: 14px; font-weight: 600; color: var(--ink);
+    background: transparent; border: 1.5px solid var(--line); border-radius: 999px;
+    padding: 6px 13px; cursor: pointer; transition: background .12s, border-color .12s, color .12s;
+  }
+  .chip:hover { border-color: #c4c4bc; }
+  /* hover popover showing how this necessity is calculated */
+  .cinfo {
+    position: absolute; left: 50%; bottom: calc(100% + 9px); transform: translateX(-50%);
+    background: var(--ink); color: #fff; padding: 7px 10px; border-radius: 9px;
+    font-size: 12px; font-weight: 500; line-height: 1.4; white-space: nowrap; text-align: center;
+    opacity: 0; pointer-events: none; transition: opacity .1s; z-index: 8;
+  }
+  .cinfo::after { content: ""; position: absolute; left: 50%; top: 100%; transform: translateX(-50%);
+    border: 5px solid transparent; border-top-color: var(--ink); }
+  .cinfo b { color: #fff; }
+  .chip:hover .cinfo { opacity: 1; }
+  .chip .d { width: 9px; height: 9px; border-radius: 50%; background: var(--c); opacity: .4; }
+  .chip.on { background: var(--c); border-color: var(--c); color: #fff; }
+  .chip.on .d { background: #fff; opacity: 1; }
+  /* unpressed chips bounce — a nudge to subtract all the basic necessities */
+  @keyframes nudge { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+  .chip.nudge { animation: nudge 1.05s ease-in-out infinite; }
+  .chip.nudge:hover { animation-play-state: paused; }
+  @media (prefers-reduced-motion: reduce) { .chip.nudge { animation: none; } }
+  .chip .h {
+    width: 2.4em; text-align: right; font: inherit; font-size: 14px; font-weight: 700; color: inherit;
+    background: transparent; border: 0; border-bottom: 1.5px solid currentColor; padding: 0; margin-left: 1px;
+    -moz-appearance: textfield;
+  }
+  .chip .h::-webkit-outer-spin-button, .chip .h::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+  .chip .u { opacity: .7; }
+
+  /* grid — the hero */
+  #grid { display: grid; grid-template-columns: repeat(auto-fill, var(--cell)); gap: var(--gap); }
+  .c { width: var(--cell); height: var(--cell); border-radius: 1px; background: var(--past); }
+
+  .foot { margin-top: 26px; color: var(--dim); font-size: 12px; }
+  .foot .key { display: inline-flex; align-items: center; gap: 5px; margin-right: 14px; }
+  .foot .key i { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+  .note { margin-top: 14px; max-width: 560px; line-height: 1.5; }
+  .note a { color: var(--dim); }
+
+  #tip {
+    position: fixed; pointer-events: none; z-index: 9; background: var(--ink); color: #fff;
+    padding: 5px 8px; border-radius: 6px; font-size: 12px; white-space: nowrap;
+    transform: translate(-50%, -135%); opacity: 0; transition: opacity .08s;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <p class="sentence">
+    born <input type="date" id="birth" class="pick" value="1990-06-15" />,
+    optimistically living until <span class="selwrap"><select id="life" class="pick"></select></span><br />
+    in <span class="selwrap"><select id="view" class="pick"></select></span><span class="retire off" id="retireWrap"> &middot; retiring at <input type="number" id="retire" class="pick" value="65" min="30" max="90" step="1" /></span>
+  </p>
+
+  <h1 class="punch" id="punch"></h1>
+  <p class="sub" id="sub"></p>
+  <p class="quip" id="quip"></p>
+
+  <div class="chips" id="chips"></div>
+
+  <div id="grid"></div>
+
+  <div class="foot">
+    <span id="legend"></span>
+    <div class="note">hours/day get spread evenly across the time you've got left, then carved out of your future — except work, which only counts until you retire. green is what survives. rough mirror, not the actuary's table. inspired by <a href="https://waitbutwhy.com/2014/05/life-weeks.html" target="_blank" rel="noopener">tim urban</a> · <a href="https://www.bryanbraun.com/your-life/" target="_blank" rel="noopener">bryan braun</a><div style="margin-top:14px"><span style="opacity:.7">inputs are saved locally — </span><a href="#" id="reset">reset here</a></div>
+    <div style="margin-top:6px;opacity:.7">⌘Z / Ctrl+Z to undo, add ⇧ to redo</div></div>
+  </div>
+</div>
+
+<div id="tip"></div>
+
+<script>
+(() => {
+  "use strict";
+  const UPY = { days: 365.25, weeks: 52.1786, months: 12, years: 1 };
+  const CELL = { days: ["4px","1px"], weeks: ["9px","2px"], months: ["15px","3px"], years: ["28px","6px"] };
+  const UL  = { days: "days", weeks: "weeks", months: "months", years: "years" };
+
+  const ACTS = [
+    { id:"sleep",   name:"sleep",     hours:8,   color:"#5b6bf0", on:false },
+    { id:"work",    name:"work",      hours:8,   color:"#f0a020", on:false, untilRetirement:true },
+    { id:"phone",   name:"screens",   hours:3,   color:"#13b3a3", on:false },
+    { id:"eat",     name:"eating",    hours:1.5, color:"#e0457b", on:false },
+    { id:"hygiene", name:"hygiene",   hours:1,   color:"#0e9bbf", on:false },
+    { id:"chores",  name:"chores",    hours:1,   color:"#8b5cf6", on:false },
+    { id:"commute", name:"commuting", hours:1,   color:"#e0533a", on:false },
+  ];
+
+  const state = { life: 90, view: "weeks" };
+  const $ = (id) => document.getElementById(id);
+  const grid = $("grid"), tip = $("tip");
+  let cells = [], buckets = [], layout = null;
+  let past = [], future = [], present = null;   // undo / redo history (⌘Z / ⌘⇧Z)
+  const fmt = (n) => Math.round(n).toLocaleString();
+
+  // ---- persistence: remember everything between visits ----
+  const KEY = "yourlife.v1";
+  function save() {
+    try {
+      localStorage.setItem(KEY, JSON.stringify({
+        birth: $("birth").value,
+        life: state.life,
+        view: state.view,
+        retire: $("retire").value,
+        acts: ACTS.map(a => ({ id: a.id, on: a.on, hours: a.hours })),
+      }));
+    } catch (e) { /* private mode / storage off — just don't persist */ }
+  }
+  function load() {
+    let s; try { s = JSON.parse(localStorage.getItem(KEY)); } catch (e) { return; }
+    if (!s) return;
+    if (s.birth) $("birth").value = s.birth;
+    if (s.life) state.life = +s.life;
+    if (s.view && UPY[s.view]) state.view = s.view;
+    if (s.retire) $("retire").value = s.retire;
+    if (Array.isArray(s.acts)) s.acts.forEach(o => {
+      const a = ACTS.find(x => x.id === o.id);
+      if (!a) return;
+      if (typeof o.on === "boolean") a.on = o.on;
+      if (typeof o.hours === "number") a.hours = o.hours;
+    });
+  }
+  load();
+
+  // ---- controls ----
+  const lifeSel = $("life");
+  [30,40,50,60,70,80,90].forEach(y => lifeSel.add(new Option(y, y, false, y===state.life)));
+  lifeSel.onchange = () => { state.life = +lifeSel.value; pushHistory(); rebuild(); };
+
+  const viewSel = $("view");
+  ["days","weeks","months","years"].forEach(v => viewSel.add(new Option(v, v, false, v===state.view)));
+  viewSel.onchange = () => { state.view = viewSel.value; pushHistory(); rebuild(); };
+
+  $("birth").addEventListener("change", () => { pushHistory(); rebuild(); });
+
+  const retireInp = $("retire"), retireWrap = $("retireWrap");
+  const getRetire = () => { const v = parseFloat(retireInp.value); return isNaN(v) ? 65 : Math.max(0, Math.min(120, v)); };
+  retireInp.oninput = () => { save(); paint(); };
+  retireInp.onchange = () => pushHistory();
+
+  // ---- chips ----
+  function buildChips() {
+    const box = $("chips");
+    box.innerHTML = "";
+    ACTS.forEach((a, idx) => {
+      const el = document.createElement("button");
+      el.className = "chip" + (a.on ? " on" : " nudge");
+      el.style.setProperty("--c", a.color);
+      el.style.animationDelay = (idx * 0.1) + "s";
+      if (a.untilRetirement) retireWrap.classList.toggle("off", !a.on);
+      el.innerHTML = `<span class="d"></span>${a.name}
+        <input class="h" type="number" min="0" max="24" step="0.5" value="${a.hours}" /><span class="u">h</span>
+        <span class="cinfo"></span>`;
+      el.onclick = () => {
+        a.on = !a.on;
+        el.classList.toggle("on", a.on);
+        el.classList.toggle("nudge", !a.on);
+        if (a.untilRetirement) retireWrap.classList.toggle("off", !a.on);
+        pushHistory();
+        paint();
+      };
+      a._info = el.querySelector(".cinfo");
+      const inp = el.querySelector(".h");
+      inp.onclick = (e) => e.stopPropagation();
+      inp.oninput = () => {
+        let v = parseFloat(inp.value); if (isNaN(v)) v = 0;
+        a.hours = Math.max(0, Math.min(24, v));
+        save();
+        if (a.on) paint();
+      };
+      inp.onchange = () => pushHistory();
+      box.appendChild(el);
+    });
+  }
+
+  // ---- math ----
+  // whole-number age from the calendar (don't count this year's birthday until it's passed)
+  function ageAt(birth, date) {
+    let a = date.getFullYear() - birth.getFullYear();
+    if (date.getMonth() < birth.getMonth() ||
+        (date.getMonth() === birth.getMonth() && date.getDate() < birth.getDate())) a--;
+    return a;
+  }
+
+  function compute() {
+    const bv = $("birth").value;
+    const birth = bv ? new Date(bv + "T00:00:00") : null;
+    const upy = UPY[state.view];
+    const total = Math.max(1, Math.round(state.life * upy));
+    if (!birth || isNaN(birth)) return { ok:false, total };
+
+    const now = new Date();
+    const daysLived = Math.max(0, (now - birth) / 86400000);
+    const ageInt = Math.max(0, ageAt(birth, now));
+    const lived = Math.min(total, Math.floor(daysLived * upy / 365.25));
+    const future = Math.max(0, total - lived);
+
+    // work only happens between now and retirement; everything else spans all of life
+    const retire = getRetire();
+    const retireUnits = Math.max(0, Math.min(future, Math.round(retire * upy) - lived));
+    const baseFor = (a) => a.untilRetirement ? retireUnits : future;
+
+    // Cumulative rounding: round each band's running BOUNDARY, not each band on its own.
+    // Independent per-band rounding compounds (esp. in the coarse "years" view) and can make
+    // a younger person show less free time than an older one. This keeps errors from piling up
+    // and keeps all four views consistent.
+    let cursor = lived, acc = 0; const alloc = [];
+    for (const a of ACTS.filter(a => a.on)) {
+      acc += baseFor(a) * a.hours / 24;
+      const boundary = Math.min(total, lived + Math.round(Math.min(acc, future)));
+      alloc.push({ a, units: Math.max(0, boundary - cursor) });
+      cursor = boundary;
+    }
+    const free = total - cursor;
+    return { ok:true, total, lived, future, alloc, free, age: daysLived/365.25, ageInt, birth, retire, retireUnits, baseFor };
+  }
+
+  // ---- render ----
+  function rebuild() {
+    const [size, gap] = CELL[state.view];
+    document.documentElement.style.setProperty("--cell", size);
+    document.documentElement.style.setProperty("--gap", gap);
+    const c = compute(); layout = c;
+    grid.innerHTML = ""; cells = [];
+    if (!c.ok) { render(c); return; }
+    const frag = document.createDocumentFragment();
+    for (let i = 0; i < c.total; i++) {
+      const d = document.createElement("div");
+      d.className = "c"; d.dataset.i = i;
+      frag.appendChild(d); cells.push(d);
+    }
+    grid.appendChild(frag);
+    paint();
+  }
+
+  function paint() {
+    const c = compute(); layout = c;
+    if (c.ok && cells.length) {
+      buckets = new Array(c.total);
+      let i = 0;
+      for (; i < c.lived; i++) { cells[i].style.background = "var(--past)"; buckets[i] = "spent"; }
+      for (const { a, units } of c.alloc)
+        for (let k = 0; k < units; k++, i++) { cells[i].style.background = a.color; buckets[i] = a.name; }
+      for (; i < c.total; i++) { cells[i].style.background = "var(--free)"; buckets[i] = "free time"; }
+    }
+    if (c.ok) {
+      const u = UL[state.view];
+      ACTS.forEach(a => {
+        if (!a._info) return;
+        const units = Math.round(c.baseFor(a) * a.hours / 24);
+        a._info.innerHTML = a.untilRetirement
+          ? `${a.hours}h/day until you retire at <b>${c.retire}</b><br>≈ ${fmt(units)} ${u} of what's left<br><span style="opacity:.55">then your time's your own</span>`
+          : `${a.hours}h/day across what's left<br>≈ ${fmt(units)} ${u}`;
+      });
+    }
+    render(c);
+  }
+
+  function render(c) {
+    const punch = $("punch"), sub = $("sub"), quip = $("quip");
+    if (!c.ok) { punch.textContent = "so… when were you born?"; sub.textContent = ""; quip.textContent = ""; legend([]); return; }
+    const u = UL[state.view];
+    const livedPct = Math.round(c.lived / c.total * 100);
+    const on = c.alloc.length > 0;
+
+    if (!on) {
+      punch.innerHTML = `<b>${fmt(c.future)}</b> ${u} left.`;
+      sub.textContent = `you're ${c.ageInt} · ${livedPct}% already gone · all of it still yours`;
+      quip.textContent = "now toggle what quietly eats the rest ↓";
+    } else {
+      const consumed = c.future - c.free;
+      const yrs = c.free / UPY[state.view]; // free units → years
+      punch.innerHTML = `<b>${fmt(c.free)}</b> ${u} are <em>actually</em> yours.`;
+      sub.textContent = `you're ${c.ageInt} · spent ${fmt(c.lived)} · the routine eats ${fmt(consumed)} of what's left · ~${yrs.toFixed(1)} yrs of real life`;
+      const pct = c.free / c.future;
+      quip.textContent = pct > 0.6 ? "comfortable. for now."
+        : pct > 0.3 ? "tighter than you thought, huh."
+        : pct > 0.1 ? "...that's not a lot."
+        : pct > 0.02 ? "yeah. that sliver is the whole thing."
+        : "spend it on something good.";
+    }
+    legend(c.alloc.map(x => x.a));
+  }
+
+  function legend(active) {
+    const parts = [`<span class="key"><i style="background:var(--past)"></i>spent</span>`,
+                   `<span class="key"><i style="background:var(--free)"></i>free time</span>`];
+    active.forEach(a => parts.push(`<span class="key"><i style="background:${a.color}"></i>${a.name}</span>`));
+    $("legend").innerHTML = parts.join("");
+  }
+
+  // ---- undo / redo ----
+  function snapshot() {
+    return {
+      birth: $("birth").value, life: state.life, view: state.view, retire: $("retire").value,
+      acts: ACTS.map(a => ({ id: a.id, on: a.on, hours: a.hours })),
+    };
+  }
+  function pushHistory() {                 // call AFTER a change has been applied
+    if (present) { past.push(present); if (past.length > 200) past.shift(); }
+    present = snapshot();
+    future = [];
+    save();
+  }
+  function applySnapshot(s) {
+    if (!s) return;
+    $("birth").value = s.birth || "";
+    if (s.life) { state.life = +s.life; lifeSel.value = String(s.life); }
+    if (s.view && UPY[s.view]) { state.view = s.view; viewSel.value = s.view; }
+    if (s.retire != null) $("retire").value = s.retire;
+    if (Array.isArray(s.acts)) s.acts.forEach(o => {
+      const a = ACTS.find(x => x.id === o.id);
+      if (a) { a.on = !!o.on; if (typeof o.hours === "number") a.hours = o.hours; }
+    });
+    buildChips();   // re-render chips + sync retirement input
+    rebuild();      // recompute the grid (view/life/birth may have changed) and repaint
+    save();
+  }
+  function undo() { if (!past.length) return; future.push(present); present = past.pop(); applySnapshot(present); }
+  function redo() { if (!future.length) return; past.push(present); present = future.pop(); applySnapshot(present); }
+
+  document.addEventListener("keydown", (e) => {
+    if (!(e.metaKey || e.ctrlKey)) return;
+    const k = e.key.toLowerCase();
+    if (k === "z" && !e.shiftKey) { e.preventDefault(); undo(); }
+    else if ((k === "z" && e.shiftKey) || k === "y") { e.preventDefault(); redo(); }
+  });
+
+  // ---- tooltip ----
+  function unitDate(birth, i) {
+    const d = new Date(birth);
+    if (state.view === "days") d.setDate(d.getDate() + i);
+    else if (state.view === "weeks") d.setDate(d.getDate() + i * 7);
+    else if (state.view === "months") d.setMonth(d.getMonth() + i);
+    else d.setFullYear(d.getFullYear() + i);
+    return d;
+  }
+  grid.addEventListener("mousemove", (e) => {
+    const t = e.target;
+    if (!t.dataset || t.dataset.i === undefined || !layout || !layout.ok) { tip.style.opacity = 0; return; }
+    const i = +t.dataset.i, d = unitDate(layout.birth, i);
+    const age = ageAt(layout.birth, d);
+    const when = d.toLocaleDateString(undefined, { year: "numeric", month: "short", day: state.view === "days" ? "numeric" : undefined });
+    tip.innerHTML = `${buckets[i] || ""} · age ${age} · ${when}`;
+    tip.style.left = e.clientX + "px"; tip.style.top = e.clientY + "px"; tip.style.opacity = 1;
+  });
+  grid.addEventListener("mouseleave", () => { tip.style.opacity = 0; });
+
+  $("reset").addEventListener("click", (e) => {
+    e.preventDefault();
+    try { localStorage.removeItem(KEY); } catch (e) {}
+    location.reload();
+  });
+
+  buildChips();
+  rebuild();
+  present = snapshot();   // baseline for undo
+})();
+</script>
+</body>
+</html>
